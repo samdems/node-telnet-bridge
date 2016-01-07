@@ -1,0 +1,21 @@
+{
+  "name": "telnet-bridge",
+  "version": "0.0.1",
+  "description": "a bridge sim that runs over telnet",
+  "keywords": [
+    "bridge",
+    "telnet"
+  ],
+  "repository": "https://github.com/samdems/node-telnet-bridge.git",
+  "homepage": "https://github.com/samdems/node-telnet-bridge",
+  "author": "Sam Cross",
+  "dependencies": {
+    "buffers": "^0.1.1",
+    "colors": "^1.1.2",
+    "telnet": "0.0.1"
+  },
+  "main": "server",
+  "engines": {
+    "node": ">= 0.4.1"
+  }
+}
