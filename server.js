@@ -1,7 +1,25 @@
+include = function(file) {
+  var data = fs.readFileSync(file);
+  eval(data.toString());
+};
 
-var telnet = require('telnet');
+
+var telnet  = require('telnet');
 var Buffers = require('buffers');
-var Buffers = require('colors');
+var colors  = require('colors');
+var fs = require("fs");
+
+include("ext/tick.js");
+include("ext/user.js");
+include("ext/menu.js");
+include("ext/universe.js");
+include("ext/screengui.js");
+include("ext/ship.js");
+include("ext/room.js");
+include("ext/Resource.js");
+include("ext/person.js");
+
+
 var strVar="";
 strVar += "      ╔══════╗                     ╔══════╗\n".red;
 strVar += "      ║      ║       ╔╧■■■╧╗       ║      ║\n".red;
@@ -67,272 +85,12 @@ telnet.createServer(function (client) {
     }
   });
   client.on('data', function (data) {
-   user.received(data);
-
-   
+   user.received(data);  
   });
 
 }).listen(8080);
 
-User = function(telnet) {
-  this.width  = 0;
-  this.height = 0;
-  this.setwindowsize = function(width,height) {
-   this.width  = width;
-   this.height = height;
-  };
-  this.clear = function() {
-    telnet.write("'\u001B[2J\u001B[0;0f'");
-  };
-  this.center = function(b) {
-    for (var i = 0; i < Math.floor((this.width/2)-(b.length/2)); i++) {
-      telnet.write(new Buffer([27,91,67]));
-    }
-     telnet.write(b + "\n");
-  };
-  this.received = function(data) {     
-    //telnet.write(data);
-    this.active(data);
-  };
-};
-
-Menu = function(user,telnet,title,options) {
-  var selected = 0;
-  this.render = function() {
-    user.center(title.white);
-    telnet.write("\u001B[2J\u001B[0;0f".white);
-    var count = 0;
-    for (var key in options){
-      if (count == selected ) {
-        user.center(key.red);
-      }else{
-        user.center(key.white);
-      }
-      count++;
-    }
-  };
-  this.render();
-  var render = this.render;
-  this.receive = function(data) {
-    if (data[0] == 27 && data[1] == 91 && data[2] == 66) {
-      selected++;
-      render();
-    }else if (data[0] == 27 && data[1] == 91 && data[2] == 65) {
-      selected--;
-      render();
-    }else if (data[0] == 27 && data[1] == 91 && data[2] == 67) {
-      var count = 0;
-      for (var key in options){
-        if (count == selected ) {
-
-          options[key](user,telnet,this);
-        }
-        count++;
-      }
-    }
-    if (selected < 0) {
-      selected = 0;
-    }
-    if(selected < options.length ){
-      selected = 0;
-    }
-  };
-};
-screengui = function(user,telnet,title,data,menu) {
-  var loop;
-  this.render = function() {
-    loop = setInterval(function(){
-        user.clear();
-        telnet.write(data);       
-      }, 500);
-  };
-  this.receive = function(data) {
-    clearInterval(loop);
-    var test = menu.receive;
-    user.active = test;
-    //menu.render();
-  };
-};
-ticklist = [];
-Universe = function() {
-  ticklist.push(this);
-  this.ships = [];
-  this.addShip = function(ship) {
-    this.ships.push(ship);
-  };
-  this.tick = function() {};
-};
-Ship = function(name) {
-  ticklist.push(this);
-  this.rooms = [];
-  this.addRoom = function(newRoom,x,y) {
-    this.rooms.push({room: newRoom,x:x,y:y});
-    newRoom.setShip(this);
-  };
-  this.listrooms = function() {
-    var output = [];
-    for (var i = 0; i < this.rooms.length; i++) {
-     output.push (this.rooms[i].room);
-    }
-    return output;
-  };
-  this.getAdjacentRooms = function(room) {
-    AdjacentRooms = [];
-    for (var i = 0; i < this.rooms.length; i++) {
-      if (this.rooms[i].room === room) {
-        for (var x = 0; x < this.rooms.length; x++) {
-          if (this.rooms[i].x + 1 == this.rooms[x].x || this.rooms[i].x - 1 == this.rooms[x].x || this.rooms[i].y - 1 == this.rooms[x].y || this.rooms[i].y + 1 == this.rooms[x].y  ) {
-            AdjacentRooms.push(this.rooms[x].room);
-          }
-        }
-      }
-    }
-    return AdjacentRooms;
-  };
-  this.tick = function() {};
-  this.stats = function() {
-    output  = "___-___-___-___" + name + "___-___-___-___\n";
-    for (var i = 0; i < this.rooms.length; i++) {
-      output += " x: " + this.rooms[i].x + " y:" + this.rooms[i].y;
-      output += this.rooms[i].room.stats();
-    }
-    return output;
-  };
-};
-Room = function(name,transferRate) {
-  ticklist.push(this);
-  this.resources = [];
-  this.requireResources = {};
-  this.online = true;
-  this.ship = null;
-  this.setShip = function(ship) {
-    this.ship = ship;
-  };
-  this.addResource = function(newResource) {
-    this.resources.push(newResource);
-  };
-  this.getName = function() {
-    return name;
-  };
-  this.getResource = function(name) {
-      for (var i = 0; i < this.resources.length; i++) {
-        if (this.resources[i].getName() == name)
-        {
-          return this.resources[i];
-        }
-      }
-     return false;
-  };
-  this.tick = function() {
-    
-      for (var key in this.requireResources) {
-        if (this.getResource(key) === false || this.getResource(key).getAmount() === 0) {
-          this.online = false;
-        }else{
-          this.getResource(key).addAmount(-this.requireResources[key]);
-          this.online = true;
-        }
-        if (this.online) {
-          if (this.getResource(key).getRecommended() - this.getResource(key).getAmount() < 0) {
-           var arooms = this.ship.getAdjacentRooms(this);
-           for (var i = 0; i < arooms.length; i++) {
-            if (arooms[i].getResource(key)) {
-             if (arooms[i].getResource(key).getRecommended() - arooms[i].getResource(key).getAmount() > 0) {
-                 var aamount = this.getResource(key).addAmount(transferRate*-1)*-1;
-                 var test = arooms[i].getResource(key).addAmount(aamount);
-                  if (test !== aamount ) {
-                    this.getResource(key).addAmount(aamount-test);
-                  }
-             }
-            }
-           }
-          }
-        }
-    }
-  };
-  this.stats = function() {
-   output  = "__" + name + "__\n"+ this.online + "\ntype | name | amount  | max  |  gen  |  recommended\n";
-   for (var i = 0; i < this.resources.length; i++) {
-     output += this.resources[i].stats() + "\n";
-   }
-   return output;
-  };
-
-};
-Resource = function(type,name,amount,max,recommended,gen) {
-  ticklist.push(this);
-  this.getAmount = function() {
-    return amount;
-  };
-  this.getName = function() {
-    return name;
-  };
-  this.getType = function() {
-      return type;
-  };
-  this.getMax = function() {
-    return max;
-  };
-  this.getRecommended = function() {
-    return recommended;
-  };
-  this.addAmount = function(newamount) { 
-    if (amount + newamount >= 0 && amount + newamount < max+1) {
-       amount += newamount;
-       return newamount ;
-    }
-    if (amount + newamount > max ) {
-      amount += newamount - (amount + newamount - max);
-      return (amount + newamount - max);
-    }
-    return 0;
-  };
-  this.tick = function() {
-    if (gen !== null) {
-      this.addAmount(gen);
-    }
-  };
-  this.stats = function() {
-     return type +"|"+ name +"|"+ amount +"|"+ max +"|"+ gen +"|"+ recommended;
-  };
-};
-Person = function(name,size,requireResources) {
-  ticklist.push(this);
-  this.requireResources = {};
-  this.room;
-  this.living = true;
-  this.getsize = function() {
-    return size;
-  };
-  this.kill = function() {
-    this.living = false;
-    this.tick = function() {};
-  };
-  this.moveroom = function(room) {
-    this.room = room;
-  };
-  this.tick = function() {
-    for (var key in this.requireResources) {
-      if (this.room.getResource(key) === false || this.room.getResource(key).getAmount() === 0) {
-        this.kill();
-      }else{
-      if (this.requireResources[key] !== null) {
-         this.room.getResource(key).addAmount(-this.requireResources[key]);
-        }
-      }
-    }
-  };
-  this.stats = function() {
-     output = "__" + name + "__\n";
-      if (this.living) {
-        output += "is living";
-      }else{
-        output += "is dead";
-      }
-     return output;
-  };
-};
-
+/*
 
 bridge = new Room("bridge",10);//type,name,amount,max,recommended,gen
 bridge.addResource(new Resource("gas","air",100,100,50));
@@ -401,23 +159,15 @@ sam.requireResources.power = 7;
 
 universe = new Universe();
 universe.addShip(ship);
-setInterval(function(){
-  for (var i = 0; i < ticklist.length; i++) {
-   ticklist[i].tick();
-  }
-  //document.body.innerHTML = ship.stats().replace(/(?:\r\n|\r|\n)/g, '<br />');
-  //console.log (ship.stats());
-  //console.log (sam.stats());
-  //console.log (mick.stats());
-  
-}, 1000);   
 
+*/
 
-//telnet.write(Array(Math.floor((this.width/2)-(b.length/2))).join(" ") + b);
-//
-//
-//
 String.prototype.repeat= function(n){
     n = n || 1;
     return Array(n+1).join(this);
-}
+};
+
+
+
+
+

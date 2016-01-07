@@ -1,0 +1,17 @@
+{
+	"name" :"mick001",
+	"class":"mick001",
+	"layout":{
+		"bridge": {
+			"Resource":{
+				"air":["gas",100,100,50],
+				"power":["power",50,50,50],
+				"power":["power",2,2]
+				},
+			"requireResources":{
+				"power":20,
+				"air":10
+				}
+		}
+	}
+}
