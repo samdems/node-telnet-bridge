@@ -3,13 +3,15 @@ screengui = function(user,telnet,title,data,menu) {
   this.render = function() {
     loop = setInterval(function(){
         user.clear();
-        telnet.write(data);       
+        console.log(data);
+        telnet.write(data());       
       }, 500);
   };
   this.receive = function(data) {
     clearInterval(loop);
+    console.log(loop);
     var test = menu.receive;
     user.active = test;
-    //menu.render();
+    menu.render();
   };
 };

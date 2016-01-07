@@ -26,11 +26,12 @@ Ship = function(name) {
     return AdjacentRooms;
   };
   this.load = function(file,callback) {
-    fs.readFile('file', function (err, data) {
+    fs.readFile(file, function (err, data) {
       if (err) {
         throw err; 
       }
       data = JSON.parser(data);
+      name = data.name;
       console.log(data);
       return callback;
     });
