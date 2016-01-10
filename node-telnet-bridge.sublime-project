@@ -4,5 +4,12 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"build_systems":
+    [
+        {
+            "name": "server",
+            "cmd": ["node","server"]
+        }
+    ]
 }
